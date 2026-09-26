@@ -1,4 +1,5 @@
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const RAW_API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
 
 export async function fetchModels() {
   const res = await fetch(`${API_BASE}/api/models`);

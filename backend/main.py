@@ -118,6 +118,12 @@ class EvaluateRequest(BaseModel):
 
 
 # ------------------- Endpoints -------------------
+@app.get("/")
+async def root():
+    """Health check root endpoint."""
+    return {"status": "ok", "message": "Multi-Agentic RAG API is running"}
+
+
 @app.get("/api/models")
 async def get_models():
     """Return available LLM models."""
