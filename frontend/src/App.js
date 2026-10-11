@@ -18,6 +18,7 @@ export default function App() {
   const [activeAgent, setActiveAgent] = useState("");
   const [activeSubAgent, setActiveSubAgent] = useState("none");
   const [toast, setToast] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
@@ -48,6 +49,7 @@ export default function App() {
       setIsLoading(true);
       setActiveAgent("");
       setActiveSubAgent("none");
+      setSidebarOpen(false); // Close mobile sidebar if open
 
       try {
         let result;
@@ -97,9 +99,16 @@ export default function App() {
     <>
       <Toast toast={toast} />
 
-      {/* Clean, Simple Top Header (No Workspaces, No Evaluation) */}
+      {/* Responsive Top Header */}
       <header className="top-nav">
         <div className="brand-wrapper">
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label="Toggle sidebar menu"
+          >
+            {sidebarOpen ? "✕" : "☰"}
+          </button>
           <div className="brand-symbol" />
           <span className="brand-name">Nexora</span>
           <span className="brand-subtag">7-Agent Assistant</span>
@@ -109,25 +118,31 @@ export default function App() {
           {activeAgent && activeAgent !== "error" && (
             <div className="active-agent-pill">
               <span className="agent-indicator-pulse" />
-              <span>Agent: {activeAgent.replace(/_/g, " ")}</span>
+              <span className="agent-pill-text">Agent: {activeAgent.replace(/_/g, " ")}</span>
             </div>
           )}
 
           {messages.length > 0 && (
             <button className="clear-chat-btn" onClick={handleClearChat}>
-              Clear Chat
+              Clear
             </button>
           )}
 
           <div className="status-badge-file">
             {uploadedFiles.length > 0
-              ? `● ${uploadedFiles.length} PDF${uploadedFiles.length > 1 ? "s" : ""} Loaded`
-              : "○ Ready (Free Chat)"}
+              ? `● ${uploadedFiles.length} PDF${uploadedFiles.length > 1 ? "s" : ""}`
+              : "○ Ready"}
           </div>
         </div>
       </header>
 
       <div className="app-container">
+        {/* Backdrop for mobile drawer */}
+        <div
+          className={`sidebar-backdrop ${sidebarOpen ? "visible" : ""}`}
+          onClick={() => setSidebarOpen(false)}
+        />
+
         <Sidebar
           models={models}
           selectedModel={selectedModel}
@@ -137,6 +152,8 @@ export default function App() {
           activeAgent={activeAgent}
           activeSubAgent={activeSubAgent}
           onToast={showToast}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
 
         <main className="main-content">

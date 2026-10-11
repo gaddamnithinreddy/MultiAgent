@@ -20,6 +20,8 @@ export default function Sidebar({
   activeAgent,
   activeSubAgent,
   onToast,
+  isOpen,
+  onClose,
 }) {
   const fileInputRef = useRef(null);
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -62,7 +64,15 @@ export default function Sidebar({
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? "mobile-open" : ""}`}>
+      {/* Mobile Drawer Header with Close Button */}
+      <div className="sidebar-mobile-header">
+        <span className="sidebar-mobile-title">Workspace Settings</span>
+        <button className="sidebar-close-btn" onClick={onClose} aria-label="Close settings">
+          ✕
+        </button>
+      </div>
+
       {/* Model Selection */}
       <div className="sidebar-section">
         <div className="section-eyebrow">
