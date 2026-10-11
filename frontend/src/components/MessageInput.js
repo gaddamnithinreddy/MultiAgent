@@ -8,7 +8,7 @@ export default function MessageInput({ onSend, disabled }) {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height =
-        Math.min(textareaRef.current.scrollHeight, 120) + "px";
+        Math.min(textareaRef.current.scrollHeight, 140) + "px";
     }
   }, [text]);
 
@@ -17,6 +17,9 @@ export default function MessageInput({ onSend, disabled }) {
     if (!trimmed || disabled) return;
     onSend(trimmed);
     setText("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -27,27 +30,25 @@ export default function MessageInput({ onSend, disabled }) {
   };
 
   return (
-    <div className="input-area">
-      <div className="input-wrapper">
-        <div className="input-field-wrapper">
-          <textarea
-            ref={textareaRef}
-            className="input-field"
-            placeholder="Ask anything — summarize, generate MCQs, make notes, explain a concept..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={1}
-            disabled={disabled}
-          />
-        </div>
+    <div className="input-dock">
+      <div className="input-container-box">
+        <textarea
+          ref={textareaRef}
+          className="chat-textarea"
+          placeholder="Ask a question, request a summary, generate MCQs, or search the web..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          rows={1}
+          disabled={disabled}
+        />
         <button
-          className="send-btn"
+          className="send-action-btn"
           onClick={handleSubmit}
           disabled={disabled || !text.trim()}
-          title="Send message"
+          title="Send query (Enter)"
         >
-          ➤
+          →
         </button>
       </div>
     </div>

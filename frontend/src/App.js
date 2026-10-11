@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
 import MessageInput from "./components/MessageInput";
-import Dashboard from "./components/Dashboard";
-import { fetchModels, sendQuery, sendChat, sendEvaluate } from "./api";
+import { fetchModels, sendQuery, sendChat } from "./api";
 
 function Toast({ toast }) {
   if (!toast) return null;
@@ -19,8 +18,6 @@ export default function App() {
   const [activeAgent, setActiveAgent] = useState("");
   const [activeSubAgent, setActiveSubAgent] = useState("none");
   const [toast, setToast] = useState(null);
-  const [view, setView] = useState("chat"); // 'chat' or 'dashboard'
-  const [evaluations, setEvaluations] = useState([]);
 
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
@@ -37,7 +34,6 @@ export default function App() {
         }
       })
       .catch(() => {
-        // Fallback models if backend is not ready
         setModels([
           { key: "gpt-oss-120b", display_name: "GPT-OSS 120B" },
           { key: "gpt-oss-20b", display_name: "GPT-OSS 20B" },
@@ -47,7 +43,6 @@ export default function App() {
 
   const handleSend = useCallback(
     async (text) => {
-      // Add user message
       const userMsg = { role: "user", text };
       setMessages((prev) => [...prev, userMsg]);
       setIsLoading(true);
@@ -59,20 +54,8 @@ export default function App() {
         const hasFiles = uploadedFiles.length > 0;
 
         if (hasFiles) {
-          // Use the RAG pipeline
           result = await sendQuery(text, selectedModel);
-          
-          // Trigger evaluation asynchronously (in background)
-          const contexts = result.contexts || [];
-          sendEvaluate(text, result.response, contexts)
-            .then(metrics => {
-               setEvaluations(prev => [...prev, { query: text, ...metrics }]);
-               showToast("success", "Evaluation complete");
-            })
-            .catch(e => console.error("Eval error", e));
-            
         } else {
-          // No files uploaded — use chat agent
           result = await sendChat(text, selectedModel);
         }
 
@@ -104,67 +87,68 @@ export default function App() {
     [selectedModel, uploadedFiles, showToast]
   );
 
+  const handleClearChat = () => {
+    setMessages([]);
+    setActiveAgent("");
+    setActiveSubAgent("none");
+  };
+
   return (
-    <div className="app-container">
+    <>
       <Toast toast={toast} />
 
-      <Sidebar
-        models={models}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        uploadedFiles={uploadedFiles}
-        setUploadedFiles={setUploadedFiles}
-        activeAgent={activeAgent}
-        activeSubAgent={activeSubAgent}
-        onToast={showToast}
-      />
-
-      <div className="main-content">
-        <div className="chat-header">
-          <h2>{view === "chat" ? "💬 Study Chat" : "📊 Evaluation Dashboard"}</h2>
-          <div className="agent-badge-group">
-            <button 
-              onClick={() => setView("chat")}
-              style={{ padding: '6px 12px', marginRight: '8px', background: view === "chat" ? '#3b82f6' : 'transparent', border: '1px solid #3b82f6', color: view === "chat" ? '#fff' : '#3b82f6', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
-            >
-              Chat
-            </button>
-            <button 
-              onClick={() => setView("dashboard")}
-              style={{ padding: '6px 12px', background: view === "dashboard" ? '#3b82f6' : 'transparent', border: '1px solid #3b82f6', color: view === "dashboard" ? '#fff' : '#3b82f6', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
-            >
-              Dashboard
-            </button>
-            
-            {view === "chat" && activeAgent && activeAgent !== "error" && (
-              <span className={`agent-badge ${activeAgent}`}>
-                🤖 {activeAgent.replace(/_/g, " ")}
-              </span>
-            )}
-            {activeSubAgent && activeSubAgent !== "none" && (
-              <span className={`agent-badge ${activeSubAgent}`}>
-                ⚡ Sub: {activeSubAgent.replace(/_/g, " ")}
-              </span>
-            )}
-            {!activeAgent && (
-              <span style={{ fontSize: "0.78rem", color: "#64748b" }}>
-                {uploadedFiles.length > 0
-                  ? "Ready — ask a question"
-                  : "Upload PDFs or chat freely"}
-              </span>
-            )}
-          </div>
+      {/* Clean, Simple Top Header (No Workspaces, No Evaluation) */}
+      <header className="top-nav">
+        <div className="brand-wrapper">
+          <div className="brand-symbol" />
+          <span className="brand-name">Nexora</span>
+          <span className="brand-subtag">7-Agent Assistant</span>
         </div>
 
-        {view === "chat" ? (
-          <>
-            <ChatArea messages={messages} isLoading={isLoading} />
-            <MessageInput onSend={handleSend} disabled={isLoading} />
-          </>
-        ) : (
-          <Dashboard evaluations={evaluations} />
-        )}
+        <div className="nav-actions">
+          {activeAgent && activeAgent !== "error" && (
+            <div className="active-agent-pill">
+              <span className="agent-indicator-pulse" />
+              <span>Agent: {activeAgent.replace(/_/g, " ")}</span>
+            </div>
+          )}
+
+          {messages.length > 0 && (
+            <button className="clear-chat-btn" onClick={handleClearChat}>
+              Clear Chat
+            </button>
+          )}
+
+          <div className="status-badge-file">
+            {uploadedFiles.length > 0
+              ? `● ${uploadedFiles.length} PDF${uploadedFiles.length > 1 ? "s" : ""} Loaded`
+              : "○ Ready (Free Chat)"}
+          </div>
+        </div>
+      </header>
+
+      <div className="app-container">
+        <Sidebar
+          models={models}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          activeAgent={activeAgent}
+          activeSubAgent={activeSubAgent}
+          onToast={showToast}
+        />
+
+        <main className="main-content">
+          <ChatArea
+            messages={messages}
+            isLoading={isLoading}
+            onPromptSelect={handleSend}
+            uploadedFilesCount={uploadedFiles.length}
+          />
+          <MessageInput onSend={handleSend} disabled={isLoading} />
+        </main>
       </div>
-    </div>
+    </>
   );
 }

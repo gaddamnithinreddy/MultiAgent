@@ -2,13 +2,13 @@ import React, { useRef, useState } from "react";
 import { uploadFiles } from "../api";
 
 const AGENT_LIST = [
-  { name: "Summarizer", key: "summarizer", color: "#10b981", icon: "📝" },
-  { name: "MCQ Generator", key: "mcq_generator", color: "#f59e0b", icon: "❓" },
-  { name: "Notes Maker", key: "notes_maker", color: "#3b82f6", icon: "📒" },
-  { name: "Exam Prep", key: "exam_prep_agent", color: "#ef4444", icon: "🎯" },
-  { name: "Concept Explainer", key: "concept_explainer", color: "#8b5cf6", icon: "💡" },
-  { name: "Search Agent", key: "search_agent", color: "#ec4899", icon: "🔍" },
-  { name: "Chat Agent", key: "chat_agent", color: "#06b6d4", icon: "💬" },
+  { name: "Summarizer", key: "summarizer", icon: "📝" },
+  { name: "MCQ Generator", key: "mcq_generator", icon: "❓" },
+  { name: "Notes Maker", key: "notes_maker", icon: "📒" },
+  { name: "Exam Prep", key: "exam_prep_agent", icon: "🎯" },
+  { name: "Concept Explainer", key: "concept_explainer", icon: "💡" },
+  { name: "Search Agent", key: "search_agent", icon: "🌐" },
+  { name: "Chat Agent", key: "chat_agent", icon: "💬" },
 ];
 
 export default function Sidebar({
@@ -53,30 +53,23 @@ export default function Sidebar({
       const result = await uploadFiles(pendingFiles);
       setUploadedFiles((prev) => [...prev, ...result.files]);
       setPendingFiles([]);
-      onToast("success", `✅ ${result.message}`);
+      onToast("success", `Vectorized: ${result.message}`);
     } catch (err) {
-      onToast("error", `❌ ${err.message}`);
+      onToast("error", `Upload failed: ${err.message}`);
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <div className="logo-icon">🧠</div>
-          <div>
-            <h1>Multi-Agentic RAG</h1>
-            <p>College Study Assistant</p>
-          </div>
+    <aside className="sidebar">
+      {/* Model Selection */}
+      <div className="sidebar-section">
+        <div className="section-eyebrow">
+          <span className="section-eyebrow-accent" />
+          Model Architecture
         </div>
-      </div>
-
-      <div className="sidebar-content">
-        {/* Model Selector */}
-        <div>
-          <div className="section-label">Language Model</div>
+        <div className="model-select-wrapper">
           <select
             className="model-select"
             value={selectedModel}
@@ -88,124 +81,118 @@ export default function Sidebar({
               </option>
             ))}
           </select>
-        </div>
-
-        {/* Upload Area */}
-        <div>
-          <div className="section-label">Upload Study Material</div>
-          <div
-            className={`upload-area ${dragging ? "dragging" : ""}`}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-          >
-            <span className="upload-icon">📄</span>
-            <p>Drop PDFs here or click to browse</p>
-            <span className="upload-hint">Supports multiple PDF files</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              multiple
-              onChange={handleFileSelect}
-            />
-          </div>
-
-          {/* Pending files */}
-          {pendingFiles.length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <div className="file-list">
-                {pendingFiles.map((f, i) => (
-                  <div className="file-item" key={i}>
-                    <span className="file-icon">📕</span>
-                    <span className="file-name">{f.name}</span>
-                    <button className="file-remove" onClick={() => removePending(i)}>
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button
-                className="upload-btn"
-                style={{ marginTop: 10 }}
-                onClick={handleUpload}
-                disabled={uploading}
-              >
-                {uploading ? "Uploading..." : `Upload ${pendingFiles.length} file(s)`}
-              </button>
-            </div>
-          )}
-
-          {/* Uploaded files */}
-          {uploadedFiles.length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <div className="section-label">Uploaded Files</div>
-              <div className="file-list">
-                {uploadedFiles.map((name, i) => (
-                  <div className="file-item" key={i}>
-                    <span className="file-icon">📗</span>
-                    <span className="file-name">{name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Agent Info */}
-        <div className="agent-info-card">
-          <h3>🤖 Available Agents</h3>
-          <div className="agent-list">
-            {AGENT_LIST.map((a) => (
-              <div
-                className={`agent-dot ${
-                  activeAgent === a.key || activeSubAgent === a.key ? "active" : ""
-                }`}
-                key={a.key}
-              >
-                <span
-                  className="dot"
-                  style={{
-                    backgroundColor: a.color,
-                    color: a.color,
-                  }}
-                ></span>
-                <span>
-                  {a.icon} {a.name}
-                  {activeAgent === a.key && (
-                    <span
-                      style={{
-                        fontSize: "0.6rem",
-                        marginLeft: 6,
-                        color: a.color,
-                        fontWeight: 700,
-                      }}
-                    >
-                      ACTIVE
-                    </span>
-                  )}
-                  {activeSubAgent === a.key && activeSubAgent !== "none" && (
-                    <span
-                      style={{
-                        fontSize: "0.6rem",
-                        marginLeft: 6,
-                        color: a.color,
-                        fontWeight: 700,
-                      }}
-                    >
-                      SUB-AGENT
-                    </span>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
+          <span className="model-select-arrow">▼</span>
         </div>
       </div>
-    </div>
+
+      {/* Document Ingestion / Upload */}
+      <div className="sidebar-section">
+        <div className="section-eyebrow">
+          <span className="section-eyebrow-accent" />
+          Study Material (PDF)
+        </div>
+        <div
+          className={`upload-dropzone ${dragging ? "dragging" : ""}`}
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+        >
+          <span className="upload-icon-mark">📄</span>
+          <p className="upload-primary-text">Upload or drop PDF files</p>
+          <span className="upload-secondary-text">Textbooks, notes, or slides</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            multiple
+            style={{ display: "none" }}
+            onChange={handleFileSelect}
+          />
+        </div>
+
+        {/* Pending Files to Upload */}
+        {pendingFiles.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div className="file-list">
+              {pendingFiles.map((f, i) => (
+                <div className="file-item" key={i}>
+                  <div className="file-meta">
+                    <span>📑</span>
+                    <span className="file-name">{f.name}</span>
+                  </div>
+                  <button
+                    className="file-remove-btn"
+                    onClick={() => removePending(i)}
+                    title="Remove file"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              className="btn-primary-black"
+              onClick={handleUpload}
+              disabled={uploading}
+            >
+              {uploading ? "Embedding Chunks..." : `Upload & Vectorize (${pendingFiles.length}) →`}
+            </button>
+          </div>
+        )}
+
+        {/* Active Uploaded Files */}
+        {uploadedFiles.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div className="section-eyebrow" style={{ color: "var(--text-secondary)" }}>
+              Indexed in Pinecone ({uploadedFiles.length})
+            </div>
+            <div className="file-list">
+              {uploadedFiles.map((name, i) => (
+                <div className="file-item" key={i} style={{ background: "var(--bg-canvas)" }}>
+                  <div className="file-meta">
+                    <span style={{ color: "var(--accent-emerald)" }}>●</span>
+                    <span className="file-name">{name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Specialized Agent Swarms */}
+      <div className="sidebar-section" style={{ borderBottom: "none" }}>
+        <div className="section-eyebrow">
+          <span className="section-eyebrow-accent" />
+          Specialized Agents
+        </div>
+        <div className="agent-status-grid">
+          {AGENT_LIST.map((agent) => {
+            const isMain = activeAgent === agent.key;
+            const isSub = activeSubAgent === agent.key && activeSubAgent !== "none";
+            const isActive = isMain || isSub;
+            return (
+              <div
+                className={`agent-row ${isActive ? "active" : ""}`}
+                key={agent.key}
+              >
+                <div className="agent-identity">
+                  <span className="agent-status-indicator" />
+                  <span>
+                    {agent.icon} {agent.name}
+                  </span>
+                </div>
+                {isMain && <span className="agent-tag">ACTIVE</span>}
+                {isSub && <span className="agent-tag">SUB-AGENT</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </aside>
   );
 }

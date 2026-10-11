@@ -3,6 +3,16 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { fetchTTSAudio } from "../api";
 
+const AGENTS = [
+  { key: "summarizer", name: "Summarizer", icon: "📝", prompt: "Summarize the key points of the uploaded material into clear paragraphs." },
+  { key: "mcq_generator", name: "MCQ Generator", icon: "❓", prompt: "Generate 5 multiple-choice questions with options, answers, and explanations." },
+  { key: "notes_maker", name: "Notes Maker", icon: "📒", prompt: "Create structured revision notes with bullet points and key definitions." },
+  { key: "exam_prep_agent", name: "Exam Prep", icon: "🎯", prompt: "Predict likely exam questions categorized by Easy, Medium, and Tough." },
+  { key: "concept_explainer", name: "Concept Explainer", icon: "💡", prompt: "Explain the central concept simply with analogies and real-world examples." },
+  { key: "search_agent", name: "Search Agent", icon: "🌐", prompt: "Search the web and give me an up-to-date summary of the latest AI developments." },
+  { key: "chat_agent", name: "Chat Agent", icon: "💬", prompt: "Hi! How can you help me study today?" },
+];
+
 const AGENT_LABELS = {
   summarizer: "Summarizer",
   mcq_generator: "MCQ Generator",
@@ -17,19 +27,21 @@ function SourceLinks({ sources }) {
   if (!sources || sources.length === 0) return null;
   return (
     <div className="sources-section">
-      <h4>🔗 Sources</h4>
-      {sources.map((src, i) => (
-        <a
-          key={i}
-          className="source-link"
-          href={src.link}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span className="link-icon">🌐</span>
-          <span>{src.title || src.link}</span>
-        </a>
-      ))}
+      <div className="sources-title">Verified Sources ({sources.length})</div>
+      <div className="source-links-grid">
+        {sources.map((src, i) => (
+          <a
+            key={i}
+            className="source-link-item"
+            href={src.link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="source-link-arrow">↗</span>
+            <span style={{ fontWeight: 500 }}>{src.title || src.link}</span>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
@@ -56,7 +68,6 @@ function AudioButton({ text }) {
       audio.play();
       setPlaying(true);
     } catch (err) {
-      // Fallback to Web Speech API
       if ("speechSynthesis" in window) {
         const utterance = new SpeechSynthesisUtterance(text.substring(0, 3000));
         utterance.rate = 1;
@@ -71,12 +82,12 @@ function AudioButton({ text }) {
 
   return (
     <button
-      className={`audio-btn ${playing ? "playing" : ""}`}
+      className={`audio-ctrl-btn ${playing ? "playing" : ""}`}
       onClick={handlePlay}
       disabled={loading}
     >
-      {loading ? "⏳" : playing ? "⏹️" : "🔊"}{" "}
-      {loading ? "Loading..." : playing ? "Stop Audio" : "Play Audio"}
+      <span>{loading ? "⏳" : playing ? "⏹" : "🔊"}</span>
+      <span>{loading ? "Loading..." : playing ? "Stop Audio" : "Listen"}</span>
     </button>
   );
 }
@@ -88,13 +99,13 @@ function MessageContent({ msg }) {
   return (
     <div>
       {msg.role === "assistant" && agentKey && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-          <span className={`agent-badge ${agentKey}`}>
+        <div className="message-meta-tags">
+          <span className="meta-agent-chip">
             🤖 {AGENT_LABELS[agentKey] || agentKey}
           </span>
           {subAgentKey && (
-            <span className={`agent-badge ${subAgentKey}`}>
-              ⚡ Sub: {AGENT_LABELS[subAgentKey] || subAgentKey}
+            <span className="meta-agent-chip sub">
+              ⚡ Sub-agent: {AGENT_LABELS[subAgentKey] || subAgentKey}
             </span>
           )}
         </div>
@@ -111,7 +122,12 @@ function MessageContent({ msg }) {
   );
 }
 
-export default function ChatArea({ messages, isLoading }) {
+export default function ChatArea({
+  messages,
+  isLoading,
+  onPromptSelect,
+  uploadedFilesCount,
+}) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -120,23 +136,26 @@ export default function ChatArea({ messages, isLoading }) {
 
   if (messages.length === 0 && !isLoading) {
     return (
-      <div className="messages-area">
-        <div className="welcome-screen">
-          <span className="welcome-icon">🧠</span>
-          <h2>Welcome to Multi-Agentic RAG</h2>
-          <p>
-            Upload your study PDFs and ask anything — summaries, MCQs, notes,
-            exam prep, concept explanations, or search the web. The AI
-            automatically selects the best agent for your query.
+      <div className="welcome-chat-container">
+        <div className="welcome-chat-card">
+          <h1 className="welcome-title">How can I help you study?</h1>
+          <p className="welcome-subtitle">
+            {uploadedFilesCount > 0
+              ? `${uploadedFilesCount} PDF${uploadedFilesCount > 1 ? "s" : ""} loaded · Select an agent or ask anything:`
+              : "Upload PDFs in the sidebar or ask anything · 7 specialized agents ready:"}
           </p>
-          <div className="feature-chips">
-            <div className="feature-chip">📝 Summarizer</div>
-            <div className="feature-chip">❓ MCQ Generator</div>
-            <div className="feature-chip">📒 Notes Maker</div>
-            <div className="feature-chip">🎯 Exam Prep</div>
-            <div className="feature-chip">💡 Concept Explainer</div>
-            <div className="feature-chip">🔍 Web Search</div>
-            <div className="feature-chip">💬 Chat</div>
+
+          <div className="agent-chips-row">
+            {AGENTS.map((agent) => (
+              <button
+                key={agent.key}
+                className="agent-pill-btn"
+                onClick={() => onPromptSelect?.(agent.prompt)}
+              >
+                <span className="agent-pill-icon">{agent.icon}</span>
+                <span className="agent-pill-name">{agent.name}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -148,7 +167,7 @@ export default function ChatArea({ messages, isLoading }) {
       {messages.map((msg, i) => (
         <div key={i} className={`message ${msg.role}`}>
           <div className="message-avatar">
-            {msg.role === "user" ? "👤" : "🤖"}
+            {msg.role === "user" ? "YOU" : "AI"}
           </div>
           <div className="message-bubble">
             <MessageContent msg={msg} />
@@ -158,12 +177,17 @@ export default function ChatArea({ messages, isLoading }) {
 
       {isLoading && (
         <div className="message assistant">
-          <div className="message-avatar">🤖</div>
+          <div className="message-avatar">AI</div>
           <div className="message-bubble">
-            <div className="loading-dots">
-              <span></span>
-              <span></span>
-              <span></span>
+            <div className="loading-box">
+              <div className="loading-indicator-dots">
+                <span />
+                <span />
+                <span />
+              </div>
+              <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                Routing query across agent swarm...
+              </span>
             </div>
           </div>
         </div>
