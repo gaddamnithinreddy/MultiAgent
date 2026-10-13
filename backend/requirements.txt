@@ -25,3 +25,5 @@ requests
 gTTS
 python-dotenv
 ddgs
+python-docx
+python-pptx

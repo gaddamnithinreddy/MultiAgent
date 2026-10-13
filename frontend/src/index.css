@@ -784,12 +784,20 @@ html, body {
   font-size: 0.82rem;
 }
 
+/* Assistant message actions toolbar */
+.message-actions-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* Audio button */
 .audio-ctrl-btn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-top: 12px;
   padding: 6px 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
@@ -810,6 +818,36 @@ html, body {
   background: var(--accent-terracotta);
   border-color: var(--accent-terracotta);
   color: #ffffff;
+}
+
+/* Document export button */
+.doc-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.doc-download-btn:hover {
+  background: var(--bg-dark);
+  color: var(--text-inverse);
+  border-color: var(--border-dark);
+}
+.doc-download-btn.downloaded {
+  background: var(--bg-dark);
+  color: #34d399;
+  border-color: #34d399;
+}
+.doc-btn-icon {
+  font-size: 0.82rem;
 }
 
 /* Loading box */

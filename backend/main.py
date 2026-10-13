@@ -137,7 +137,7 @@ async def get_models():
 
 @app.post("/api/upload")
 async def upload_files(files: List[UploadFile] = File(...)):
-    """Upload one or more PDF files and build the vector store."""
+    """Upload one or more study documents (PDF, DOCX, DOC, PPTX, PPT, TXT) and build the vector store."""
     global retriever, uploaded_file_info, embedding_model
 
     if embedding_model is None:
@@ -146,22 +146,28 @@ async def upload_files(files: List[UploadFile] = File(...)):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Embedding model not available: {e}")
 
+    allowed_extensions = {".pdf", ".docx", ".doc", ".pptx", ".ppt", ".txt", ".md"}
     new_files = []
     for upload_file in files:
-        if not upload_file.filename.lower().endswith(".pdf"):
+        fname = upload_file.filename or "uploaded_file"
+        ext = os.path.splitext(fname.lower())[1]
+        if ext not in allowed_extensions:
             continue
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode="wb") as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext, mode="wb") as tmp:
             content = await upload_file.read()
             tmp.write(content)
             tmp_path = tmp.name
 
-        file_info = {"path": tmp_path, "name": upload_file.filename}
+        file_info = {"path": tmp_path, "name": fname}
         uploaded_file_info.append(file_info)
-        new_files.append(upload_file.filename)
+        new_files.append(fname)
 
     if not new_files:
-        raise HTTPException(status_code=400, detail="No valid PDF files uploaded.")
+        raise HTTPException(
+            status_code=400,
+            detail="No valid files uploaded. Supported formats: PDF, DOCX, DOC, PPTX, PPT, TXT."
+        )
 
     try:
         retriever = build_retriever(uploaded_file_info, embedding_model)

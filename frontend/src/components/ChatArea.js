@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { fetchTTSAudio } from "../api";
+import { downloadResponseAsDoc } from "../utils/docExport";
 
 const AGENTS = [
   { key: "summarizer", name: "Summarizer", icon: "📝", prompt: "Summarize the key points of the uploaded material into clear paragraphs." },
@@ -92,6 +93,28 @@ function AudioButton({ text }) {
   );
 }
 
+function DownloadDocButton({ text, agentKey }) {
+  const [downloaded, setDownloaded] = useState(false);
+
+  const handleDownload = () => {
+    downloadResponseAsDoc(text, agentKey);
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2200);
+  };
+
+  return (
+    <button
+      className={`doc-download-btn ${downloaded ? "downloaded" : ""}`}
+      onClick={handleDownload}
+      title="Download this response as a Word document (.docx)"
+      aria-label="Download response as doc"
+    >
+      <span className="doc-btn-icon">{downloaded ? "✓" : "📄"}</span>
+      <span>{downloaded ? "Downloaded Doc" : "Download Doc"}</span>
+    </button>
+  );
+}
+
 function MessageContent({ msg }) {
   const agentKey = msg.agent || "";
   const subAgentKey = msg.sub_agent && msg.sub_agent !== "none" ? msg.sub_agent : null;
@@ -116,7 +139,10 @@ function MessageContent({ msg }) {
       {msg.role === "assistant" && <SourceLinks sources={msg.sources} />}
 
       {msg.role === "assistant" && msg.text && (
-        <AudioButton text={msg.text} />
+        <div className="message-actions-bar">
+          <AudioButton text={msg.text} />
+          <DownloadDocButton text={msg.text} agentKey={msg.agent} />
+        </div>
       )}
     </div>
   );
@@ -141,8 +167,8 @@ export default function ChatArea({
           <h1 className="welcome-title">How can I help you study?</h1>
           <p className="welcome-subtitle">
             {uploadedFilesCount > 0
-              ? `${uploadedFilesCount} PDF${uploadedFilesCount > 1 ? "s" : ""} loaded · Select an agent or ask anything:`
-              : "Upload PDFs in the sidebar or ask anything · 7 specialized agents ready:"}
+              ? `${uploadedFilesCount} Document${uploadedFilesCount > 1 ? "s" : ""} loaded · Select an agent or ask anything:`
+              : "Upload PDFs, Docs, or PPTs in sidebar or ask anything · 7 specialized agents ready:"}
           </p>
 
           <div className="agent-chips-row">

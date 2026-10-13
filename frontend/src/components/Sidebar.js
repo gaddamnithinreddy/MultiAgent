@@ -11,6 +11,20 @@ const AGENT_LIST = [
   { name: "Chat Agent", key: "chat_agent", icon: "💬" },
 ];
 
+const ALLOWED_EXTS = [".pdf", ".docx", ".doc", ".pptx", ".ppt", ".txt", ".md"];
+const isAllowedFile = (name) => {
+  const lower = name.toLowerCase();
+  return ALLOWED_EXTS.some((ext) => lower.endsWith(ext));
+};
+
+const getFileIcon = (name) => {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".pdf")) return "📕";
+  if (lower.endsWith(".docx") || lower.endsWith(".doc")) return "📘";
+  if (lower.endsWith(".pptx") || lower.endsWith(".ppt")) return "📙";
+  return "📄";
+};
+
 export default function Sidebar({
   models,
   selectedModel,
@@ -29,18 +43,14 @@ export default function Sidebar({
   const [dragging, setDragging] = useState(false);
 
   const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files).filter((f) =>
-      f.name.toLowerCase().endsWith(".pdf")
-    );
+    const files = Array.from(e.target.files).filter((f) => isAllowedFile(f.name));
     setPendingFiles((prev) => [...prev, ...files]);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setDragging(false);
-    const files = Array.from(e.dataTransfer.files).filter((f) =>
-      f.name.toLowerCase().endsWith(".pdf")
-    );
+    const files = Array.from(e.dataTransfer.files).filter((f) => isAllowedFile(f.name));
     setPendingFiles((prev) => [...prev, ...files]);
   };
 
@@ -99,7 +109,7 @@ export default function Sidebar({
       <div className="sidebar-section">
         <div className="section-eyebrow">
           <span className="section-eyebrow-accent" />
-          Study Material (PDF)
+          Study Material (PDF, DOC, PPT)
         </div>
         <div
           className={`upload-dropzone ${dragging ? "dragging" : ""}`}
@@ -111,13 +121,13 @@ export default function Sidebar({
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
         >
-          <span className="upload-icon-mark">📄</span>
-          <p className="upload-primary-text">Upload or drop PDF files</p>
-          <span className="upload-secondary-text">Textbooks, notes, or slides</span>
+          <span className="upload-icon-mark">📁</span>
+          <p className="upload-primary-text">Upload PDF, DOC, or PPT</p>
+          <span className="upload-secondary-text">PDF, DOCX, DOC, PPTX, PPT files</span>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf"
+            accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md"
             multiple
             style={{ display: "none" }}
             onChange={handleFileSelect}
@@ -131,7 +141,7 @@ export default function Sidebar({
               {pendingFiles.map((f, i) => (
                 <div className="file-item" key={i}>
                   <div className="file-meta">
-                    <span>📑</span>
+                    <span>{getFileIcon(f.name)}</span>
                     <span className="file-name">{f.name}</span>
                   </div>
                   <button
@@ -164,7 +174,7 @@ export default function Sidebar({
               {uploadedFiles.map((name, i) => (
                 <div className="file-item" key={i} style={{ background: "var(--bg-canvas)" }}>
                   <div className="file-meta">
-                    <span style={{ color: "var(--accent-emerald)" }}>●</span>
+                    <span>{getFileIcon(name)}</span>
                     <span className="file-name">{name}</span>
                   </div>
                 </div>

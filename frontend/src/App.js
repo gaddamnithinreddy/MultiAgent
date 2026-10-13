@@ -130,7 +130,7 @@ export default function App() {
 
           <div className="status-badge-file">
             {uploadedFiles.length > 0
-              ? `● ${uploadedFiles.length} PDF${uploadedFiles.length > 1 ? "s" : ""}`
+              ? `● ${uploadedFiles.length} File${uploadedFiles.length > 1 ? "s" : ""}`
               : "○ Ready"}
           </div>
         </div>
