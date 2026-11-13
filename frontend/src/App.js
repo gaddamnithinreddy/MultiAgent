@@ -58,41 +58,70 @@ export default function App() {
         let result;
         const hasFiles = uploadedFiles.length > 0;
 
+        const msgId = Date.now();
+        let contexts = [];
+
         if (hasFiles) {
           result = await sendQuery(text, selectedModel);
-
-          // Asynchronously trigger Ragas evaluation in background
-          const contexts = result.contexts || [];
-          if (contexts.length > 0) {
-            sendEvaluate(text, result.response, contexts)
-              .then((metrics) => {
-                setEvaluations((prev) => [
-                  ...prev,
-                  {
-                    query: text,
-                    agent: result.agent || "rag_agent",
-                    ...metrics,
-                  },
-                ]);
-                showToast("success", "Ragas evaluation metric recorded!");
-              })
-              .catch((e) => console.error("Ragas evaluation error:", e));
-          }
+          contexts = result.contexts || [];
         } else {
           result = await sendChat(text, selectedModel);
         }
 
+        const isRag = hasFiles && contexts.length > 0;
+
         const assistantMsg = {
+          id: msgId,
           role: "assistant",
           text: result.response || "No response generated.",
           agent: result.agent || "unknown",
           sub_agent: result.sub_agent || "none",
           sources: result.sources || [],
+          evaluating: isRag,
+          evaluation: null,
         };
 
+        // Render response immediately on screen!
         setMessages((prev) => [...prev, assistantMsg]);
         setActiveAgent(result.agent || "");
         setActiveSubAgent(result.sub_agent || "none");
+        setIsLoading(false);
+
+        // Compute Ragas metrics in parallel without blocking chat
+        if (isRag) {
+          sendEvaluate(text, result.response, contexts)
+            .then((metrics) => {
+              setEvaluations((prev) => [
+                ...prev,
+                {
+                  query: text,
+                  agent: result.agent || "rag_agent",
+                  ...metrics,
+                },
+              ]);
+
+              // Update the specific message bubble with live scores
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === msgId
+                    ? { ...m, evaluating: false, evaluation: metrics }
+                    : m
+                )
+              );
+              showToast(
+                "success",
+                `Metrics: Faithfulness ${(metrics.faithfulness || 0).toFixed(2)} | Relevance ${(metrics.answer_relevance || 0).toFixed(2)}`
+              );
+            })
+            .catch((e) => {
+              console.error("Ragas evaluation error:", e);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === msgId ? { ...m, evaluating: false } : m
+                )
+              );
+            });
+        }
       } catch (err) {
         const errMsg = {
           role: "assistant",

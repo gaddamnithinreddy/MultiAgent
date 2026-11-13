@@ -850,6 +850,45 @@ html, body {
   font-size: 0.82rem;
 }
 
+/* Inline Message Evaluation Badges */
+.msg-eval-pill-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.msg-eval-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  border: 1px solid var(--border-light);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.msg-eval-pill.evaluating {
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-style: italic;
+  border-style: dashed;
+}
+
+.msg-eval-pill.score {
+  background: var(--bg-surface);
+  border-color: var(--border-medium);
+}
+
+.eval-spin {
+  display: inline-block;
+  animation: pulseDot 1.2s infinite ease-in-out;
+}
+
 /* Loading box */
 .loading-box {
   display: flex;

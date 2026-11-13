@@ -48,48 +48,124 @@ function SourceLinks({ sources }) {
 }
 
 function AudioButton({ text }) {
-  const [playing, setPlaying] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // status: 'idle' | 'loading' | 'playing' | 'paused'
+  const [status, setStatus] = useState("idle");
   const audioRef = useRef(null);
+  const isSpeechSynthRef = useRef(false);
 
-  const handlePlay = useCallback(async () => {
-    if (playing && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setPlaying(false);
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const handleToggle = useCallback(async () => {
+    // 1. If currently playing -> PAUSE
+    if (status === "playing") {
+      if (audioRef.current && !isSpeechSynthRef.current) {
+        audioRef.current.pause();
+        setStatus("paused");
+      } else if ("speechSynthesis" in window && isSpeechSynthRef.current) {
+        window.speechSynthesis.pause();
+        setStatus("paused");
+      }
       return;
     }
 
-    setLoading(true);
+    // 2. If currently paused -> PLAY / RESUME IMMEDIATELY
+    if (status === "paused") {
+      if (audioRef.current && !isSpeechSynthRef.current) {
+        audioRef.current.play();
+        setStatus("playing");
+      } else if ("speechSynthesis" in window && isSpeechSynthRef.current) {
+        window.speechSynthesis.resume();
+        setStatus("playing");
+      }
+      return;
+    }
+
+    // 3. If idle -> FETCH AUDIO & PLAY
+    setStatus("loading");
     try {
-      const audioUrl = await fetchTTSAudio(text.substring(0, 5000));
+      const cleanText = text.replace(/[*_#`~>\[\]()]/g, "").substring(0, 5000);
+      const audioUrl = await fetchTTSAudio(cleanText);
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      audio.onended = () => setPlaying(false);
-      audio.play();
-      setPlaying(true);
+      isSpeechSynthRef.current = false;
+
+      audio.onended = () => setStatus("idle");
+      audio.onerror = () => setStatus("idle");
+
+      await audio.play();
+      setStatus("playing");
     } catch (err) {
       if ("speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(text.substring(0, 3000));
+        window.speechSynthesis.cancel();
+        const cleanText = text.replace(/[*_#`~>\[\]()]/g, "").substring(0, 3000);
+        const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.rate = 1;
-        utterance.onend = () => setPlaying(false);
+        utterance.onend = () => setStatus("idle");
+        utterance.onerror = () => setStatus("idle");
+        isSpeechSynthRef.current = true;
         window.speechSynthesis.speak(utterance);
-        setPlaying(true);
+        setStatus("playing");
+      } else {
+        setStatus("idle");
       }
-    } finally {
-      setLoading(false);
     }
-  }, [text, playing]);
+  }, [text, status]);
+
+  const handleStop = useCallback((e) => {
+    e.stopPropagation();
+    if (audioRef.current && !isSpeechSynthRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setStatus("idle");
+  }, []);
 
   return (
-    <button
-      className={`audio-ctrl-btn ${playing ? "playing" : ""}`}
-      onClick={handlePlay}
-      disabled={loading}
-    >
-      <span>{loading ? "⏳" : playing ? "⏹" : "🔊"}</span>
-      <span>{loading ? "Loading..." : playing ? "Stop Audio" : "Listen"}</span>
-    </button>
+    <div style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+      <button
+        className={`audio-ctrl-btn ${status === "playing" ? "playing" : ""}`}
+        onClick={handleToggle}
+        disabled={status === "loading"}
+        title={status === "playing" ? "Pause audio" : status === "paused" ? "Resume playing" : "Listen to audio"}
+      >
+        <span>
+          {status === "loading" ? "⏳" : status === "playing" ? "⏸" : status === "paused" ? "▶" : "🔊"}
+        </span>
+        <span>
+          {status === "loading"
+            ? "Loading..."
+            : status === "playing"
+            ? "Pause"
+            : status === "paused"
+            ? "Play"
+            : "Listen"}
+        </span>
+      </button>
+
+      {(status === "playing" || status === "paused") && (
+        <button
+          className="audio-ctrl-btn"
+          onClick={handleStop}
+          title="Stop and reset to start"
+          style={{ padding: "6px 9px" }}
+        >
+          <span>⏹</span>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -142,6 +218,35 @@ function MessageContent({ msg }) {
         <div className="message-actions-bar">
           <AudioButton text={msg.text} />
           <DownloadDocButton text={msg.text} agentKey={msg.agent} />
+
+          {msg.evaluating && (
+            <span className="msg-eval-pill evaluating" title="Calculating Ragas metrics in real-time">
+              <span className="eval-spin">⚡</span> Computing Ragas metrics...
+            </span>
+          )}
+
+          {msg.evaluation && (
+            <div className="msg-eval-pill-group">
+              <span
+                className="msg-eval-pill score"
+                title="Faithfulness: Proportion of factual claims strictly supported by source documents"
+                style={{
+                  color: msg.evaluation.faithfulness >= 0.7 ? "#15803d" : "#eb573d",
+                }}
+              >
+                🛡️ Faithfulness: <strong>{(msg.evaluation.faithfulness || 0).toFixed(2)}</strong>
+              </span>
+              <span
+                className="msg-eval-pill score"
+                title="Answer Relevance: How directly and concisely the answer addresses your question"
+                style={{
+                  color: msg.evaluation.answer_relevance >= 0.7 ? "#15803d" : "#eb573d",
+                }}
+              >
+                🎯 Relevance: <strong>{(msg.evaluation.answer_relevance || 0).toFixed(2)}</strong>
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
