@@ -21,7 +21,7 @@ from langchain_groq import ChatGroq
 from vector_store import get_embedding_model, build_retriever, get_global_retriever
 from agents import create_tools
 from graph import build_graph
-from evaluation import evaluate_interaction
+from evaluation import evaluate_interaction, evaluate_interaction_async
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -300,8 +300,7 @@ async def chat(request: ChatRequest):
 async def evaluate_query(request: EvaluateRequest):
     """Evaluate a query/response pair using Ragas metrics."""
     try:
-        metrics = await asyncio.to_thread(
-            evaluate_interaction,
+        metrics = await evaluate_interaction_async(
             request.query,
             request.response,
             request.contexts
