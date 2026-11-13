@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
 import MessageInput from "./components/MessageInput";
-import { fetchModels, sendQuery, sendChat } from "./api";
+import Dashboard from "./components/Dashboard";
+import { fetchModels, sendQuery, sendChat, sendEvaluate } from "./api";
 
 function Toast({ toast }) {
   if (!toast) return null;
@@ -19,6 +20,8 @@ export default function App() {
   const [activeSubAgent, setActiveSubAgent] = useState("none");
   const [toast, setToast] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [view, setView] = useState("chat"); // 'chat' or 'dashboard'
+  const [evaluations, setEvaluations] = useState([]);
 
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
@@ -57,6 +60,24 @@ export default function App() {
 
         if (hasFiles) {
           result = await sendQuery(text, selectedModel);
+
+          // Asynchronously trigger Ragas evaluation in background
+          const contexts = result.contexts || [];
+          if (contexts.length > 0) {
+            sendEvaluate(text, result.response, contexts)
+              .then((metrics) => {
+                setEvaluations((prev) => [
+                  ...prev,
+                  {
+                    query: text,
+                    agent: result.agent || "rag_agent",
+                    ...metrics,
+                  },
+                ]);
+                showToast("success", "Ragas evaluation metric recorded!");
+              })
+              .catch((e) => console.error("Ragas evaluation error:", e));
+          }
         } else {
           result = await sendChat(text, selectedModel);
         }
@@ -114,6 +135,25 @@ export default function App() {
           <span className="brand-subtag">7-Agent Assistant</span>
         </div>
 
+        {/* View Switcher: Chat vs Evaluation Dashboard */}
+        <div className="view-toggle-group">
+          <button
+            className={`view-toggle-btn ${view === "chat" ? "active" : ""}`}
+            onClick={() => setView("chat")}
+          >
+            💬 Chat
+          </button>
+          <button
+            className={`view-toggle-btn ${view === "dashboard" ? "active" : ""}`}
+            onClick={() => setView("dashboard")}
+          >
+            📊 Metrics Dashboard
+            {evaluations.length > 0 && (
+              <span className="eval-count-badge">{evaluations.length}</span>
+            )}
+          </button>
+        </div>
+
         <div className="nav-actions">
           {activeAgent && activeAgent !== "error" && (
             <div className="active-agent-pill">
@@ -157,13 +197,23 @@ export default function App() {
         />
 
         <main className="main-content">
-          <ChatArea
-            messages={messages}
-            isLoading={isLoading}
-            onPromptSelect={handleSend}
-            uploadedFilesCount={uploadedFiles.length}
-          />
-          <MessageInput onSend={handleSend} disabled={isLoading} />
+          {view === "chat" ? (
+            <>
+              <ChatArea
+                messages={messages}
+                isLoading={isLoading}
+                onPromptSelect={handleSend}
+                uploadedFilesCount={uploadedFiles.length}
+              />
+              <MessageInput onSend={handleSend} disabled={isLoading} />
+            </>
+          ) : (
+            <Dashboard
+              evaluations={evaluations}
+              onClear={() => setEvaluations([])}
+              onLoadBenchmark={(samples) => setEvaluations(samples)}
+            />
+          )}
         </main>
       </div>
     </>

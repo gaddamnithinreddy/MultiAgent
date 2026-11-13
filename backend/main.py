@@ -3,6 +3,7 @@ Main FastAPI Application — Multi-Agentic RAG: College Study Assistant
 """
 import os
 import json
+import asyncio
 import tempfile
 import traceback
 from io import BytesIO
@@ -299,7 +300,12 @@ async def chat(request: ChatRequest):
 async def evaluate_query(request: EvaluateRequest):
     """Evaluate a query/response pair using Ragas metrics."""
     try:
-        metrics = evaluate_interaction(request.query, request.response, request.contexts)
+        metrics = await asyncio.to_thread(
+            evaluate_interaction,
+            request.query,
+            request.response,
+            request.contexts
+        )
         return metrics
     except Exception as e:
         traceback.print_exc()
